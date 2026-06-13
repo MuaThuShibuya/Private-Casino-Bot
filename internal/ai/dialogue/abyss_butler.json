@@ -1,0 +1,239 @@
+{
+  "metadata": {
+    "npc_name": "Quản Gia Abyss",
+    "version": "1.1.0",
+    "description": "Production Dialogue System - Không Toxic, Không Meme."
+  },
+  "frames": [
+    "{Butler} **Quản Gia Abyss** {Butler}\n> {dialogue}",
+    "{Moon} **Abyss Butler** {Moon}\n> {dialogue}"
+  ],
+  "categories": {
+    "WIN_BIG": {
+      "common": [
+        "{Wine} Một ván cược đáng giá. {user} thu về {amount}.",
+        "{Moon} Vực sâu đôi khi cũng hào phóng. Chúc mừng {user}.",
+        "{Gem} Ánh sáng của {amount} thật hợp với ngài, {user}.",
+        "{Dice} Không tệ. {user} dường như rất quen thuộc với bóng tối.",
+        "{Cards} Bóng tối vừa nhượng bộ {user} trong ván {game} này.",
+        "{Wine} Mùi vị của chiến thắng trộn lẫn với dục vọng... {user} vừa tước đoạt {amount} từ màn đêm.",
+        "{Gem} Đôi mắt ngài rực sáng như những viên ngọc dưới đáy vực. {amount} đã thuộc về ngài, {user}."
+      ],
+      "rare": [
+        "{Wine} Phải chăng ngài có đôi mắt nhìn thấu bóng tối, {user}?",
+        "{Gem} {amount}... Đủ để mua chuộc vài linh hồn lầm lạc dưới này.",
+        "{Galaxy} Vận mệnh đã nghiêng hẳn về phía {user} trong khoảnh khắc đó.",
+        "{Moon} Ngài đang quyến rũ cả số phận sao? Một phần linh hồn của vực sâu vừa ngoan ngoãn chui vào túi ngài.",
+        "{Cards} Máu cờ bạc của ngài đang sục sôi. Thật kích thích làm sao khi chứng kiến {user} vơ vét bàn {game}."
+      ],
+      "mythic": [
+        "{Sparkle} Ta đã chứng kiến hàng ngàn kẻ gục ngã, nhưng {user} lại đứng trên đỉnh vinh quang.",
+        "{Moon} Kẻ thao túng vận mệnh vừa lột xác. Sòng bài này hân hạnh ghi nhận điều đó.",
+        "{Sparkle} Ta có thể nghe thấy tiếng rên rỉ của những kẻ thua cuộc... Ngài dẫm lên họ để giành lấy ánh hào quang đêm nay."
+      ]
+    },
+    "WIN_SMALL": {
+      "common": [
+        "{Coin} Một khoản nhỏ, nhưng là khởi đầu tốt, {user}.",
+        "{Dice} Tích tiểu thành đại. {user} khá thận trọng.",
+        "{Wine} Nhấp từng ngụm nhỏ, đó là cách thưởng thức rượu ngon.",
+        "{Candle} Ánh sáng mong manh nhưng vẫn đủ soi đường cho ngài.",
+        "{Cards} Sự kiên nhẫn luôn mang lại thành quả ở bàn {game}.",
+        "{Coin} Một chút mật ngọt để dụ dỗ ngài bước sâu hơn vào bóng tối, {user}.",
+        "{Candle} Những đồng xu mỏng manh, nhưng đủ để thắp lên ngọn lửa tham lam trong ngài."
+      ],
+      "rare": [
+        "{Wine} Những kẻ sống lâu nhất thường là những kẻ cược cẩn thận nhất.",
+        "{Moon} Có vẻ {user} thích vờn vờn với vận mệnh hơn là ăn tươi nuốt sống.",
+        "{Cards} Sự khiêm tốn đôi khi lại là lớp ngụy trang hoàn hảo.",
+        "{Wine} Nếm thử chút hương vị chiến thắng đi. Ngài có thấy tim mình đập nhanh hơn không?",
+        "{Cards} Cẩn trọng, {user}. Vực sâu đôi khi nhả ra một chút mồi ngon để câu những linh hồn lớn hơn."
+      ],
+      "mythic": [
+        "{Sparkle} Cẩn thận từng bước một... {user} làm ta nhớ đến những cố nhân đã khuất.",
+        "{Galaxy} Đừng để sự nhỏ bé đánh lừa. Vận mệnh đang rục rịch chuyển mình.",
+        "{Moon} Một nụ hôn phớt từ nữ thần may mắn... Đừng để sự ngọt ngào này làm ngài quên mất cái giá phải trả."
+      ]
+    },
+    "LOSE": {
+      "common": [
+        "{Moon} Vực sâu đã nuốt chửng {amount} của {user}.",
+        "{Wine} Một ván thua. Trò chơi nào cũng có cái giá của nó.",
+        "{Dice} Lần này bóng tối không mỉm cười với ngài ở ván {game}.",
+        "{Candle} Ánh nến vụt tắt. Lại thử xem sao, {user}?",
+        "{Cards} Những quân bài thật tàn nhẫn, phải không?",
+        "{Candle} {amount} vừa tan thành sương khói. Vực sâu luôn đói khát những linh hồn lầm lạc.",
+        "{Wine} Cay đắng làm sao... Nhưng đừng dối lòng, ngài đang tận hưởng cảm giác hồi hộp này, đúng không?"
+      ],
+      "rare": [
+        "{Moon} Vực sâu luôn khát. Cảm ơn sự cống hiến của {user}.",
+        "{Candle} Ngọn lửa của ngài đang le lói. Cẩn thận kẻo bóng tối nuốt trọn.",
+        "{Wine} Thua cuộc cũng là một loại nghệ thuật, nếu ngài biết cách chấp nhận nó.",
+        "{Moon} Ta thích nhìn biểu lộ hụt hẫng của ngài. Đánh đổi linh hồn đâu phải lúc nào cũng suôn sẻ.",
+        "{Dice} Bóng tối vừa nuốt trọn cống phẩm của {user}. Ngài có muốn cược thêm chút sinh khí nữa không?"
+      ],
+      "mythic": [
+        "{Wine} Để ta rót cho ngài một ly. Nỗi đau này sẽ tan nhanh thôi.",
+        "{Galaxy} Càng chìm sâu, ngài càng thấy rõ bản chất của sòng bạc này.",
+        "{Galaxy} Càng đau đớn, ngài càng chìm đắm. Sự ma mị của sòng bạc này chính là thứ thuốc phiện không lối thoát."
+      ]
+    },
+    "LOSE_STREAK": {
+      "common": [
+        "{Moon} {user} đang chìm sâu vào chuỗi {streak} ván thua.",
+        "{Candle} Vận đen vẫn ngoan cố bám lấy ngài.",
+        "{Dice} Lại một ván nữa... Có lẽ nên dừng lại một chút chăng?",
+        "{Cards} Bàn {game} hôm nay thật sự khắc nghiệt.",
+        "{Wine} Không sao cả. Trăng có lúc khuyết lúc tròn.",
+        "{Moon} Chuỗi {streak} ván thua... Ngài đang hiến tế chính mình cho vực sâu đấy à?",
+        "{Candle} Đôi mắt ngài đục ngầu vì thua lỗ, nhưng đôi tay ngài vẫn không muốn dừng lại."
+      ],
+      "rare": [
+        "{Wine} Đôi khi, buông tay cũng là một loại chiến thắng đấy, {user}.",
+        "{Galaxy} Càng vùng vẫy, vực sâu càng kéo ngài xuống sâu hơn.",
+        "{Candle} Thần may mắn đang đi nghỉ phép. Đừng cố chấp nữa.",
+        "{Wine} Hơi thở của ngài nặng nhọc quá. Bị bóng tối bóp nghẹt vận may cảm giác thế nào?",
+        "{Cards} Những quân bài đang cười nhạo sự cố chấp của ngài. Nhưng ta thích sự ngoan cố đó."
+      ],
+      "mythic": [
+        "{Sparkle} Cố chấp là liều thuốc độc. Hãy để ta rót cho ngài ly rượu quên lãng.",
+        "{Galaxy} Xin ngài, đừng tự biến mình thành con rối của bóng đêm.",
+        "{Sparkle} Đáy vực đã ở ngay dưới chân. Cứ rơi đi, {user}, hãy để bóng tối ôm trọn lấy sự tuyệt vọng của ngài."
+      ]
+    },
+    "ALL_IN": {
+      "common": [
+        "{Dice} {user} vừa đẩy toàn bộ số phận vào ván này.",
+        "{Wine} Tất tay sao? Một quyết định liều lĩnh.",
+        "{Moon} Bóng tối đang nín thở xem kết cục.",
+        "{Candle} Chơi lớn đấy. Bàn {game} bắt đầu nóng lên rồi.",
+        "{Cards} Bỏ hết tất cả vào một ván. Không giữ lại đường lui.",
+        "{Dice} Không chừa lại đường lui? Hơi thở của ngài làm cả bàn {game} rùng mình.",
+        "{Candle} Ngài đặt cả linh hồn lên bàn cân. Thật điên rồ, nhưng vô cùng quyến rũ."
+      ],
+      "rare": [
+        "{Wine} Mùi của sự khao khát thật nồng nặc. Ta thích nó.",
+        "{Moon} Vực sâu há miệng chờ đợi. Ngài sẽ làm vật tế, hay kẻ chinh phục?",
+        "{Galaxy} Cả vũ trụ dường như đang nín thở theo quyết định của ngài.",
+        "{Wine} Tim ta cũng phải đập lỡ nhịp vì cú tất tay này. Sợ hãi hay phấn khích đây, {user}?",
+        "{Moon} Một canh bạc sinh tử. Bóng tối đang liếm môi chờ đợi kết cục của ngài."
+      ],
+      "mythic": [
+        "{Wine} Chút máu liều này làm ta nhớ đến kẻ từng làm sập cả sòng bài vực sâu.",
+        "{Sparkle} Ngài đang thách thức cả số phận. Ta thích sự ngạo mạn đó.",
+        "{Galaxy} Chơi đùa với cái chết luôn là trò tiêu khiển kích thích nhất. Vực sâu đang mở to mắt nhìn ngài."
+      ]
+    },
+    "JACKPOT": {
+      "common": [
+        "{Sparkle} Trời đất! {user} vừa mở khóa kho báu của vực sâu!",
+        "{Gem} {amount}! Một con số không tưởng tại bàn {game}!",
+        "{Wine} Chúc mừng. Cả sòng bạc phải ghen tị với ngài.",
+        "{Cards} Vận may bùng nổ! Không thể tin được!",
+        "{Butler} Một chiến thắng vĩ đại đáng được ghi chép lại.",
+        "{Sparkle} Cả sòng bạc rung chuyển! {user} vừa kéo sập một mảnh trời đêm với {amount}!",
+        "{Gem} Tiếng vàng rơi loảng xoảng như bản tình ca của ác quỷ. Quá kích thích!"
+      ],
+      "rare": [
+        "{Wine} Có vẻ như thần may mắn đã tự tay chọn {user} đêm nay.",
+        "{Moon} Đã bao lâu rồi mới có người lấy được nhiều tiền đến thế?",
+        "{Candle} Bóng tối cũng phải lùi bước trước ánh sáng rực rỡ này.",
+        "{Moon} Ngài vừa đánh cắp cả kho báu mà bóng tối giấu kín. Một kẻ trộm linh hồn vĩ đại!",
+        "{Wine} Ngài làm ta say đắm rồi đấy, {user}. Sự may mắn tột độ này thật ma mị làm sao."
+      ],
+      "mythic": [
+        "{Sparkle} Ngài vừa rút cạn một phần linh hồn của sòng bài này. Thật đáng kinh ngạc.",
+        "{Galaxy} Đêm nay, tên của ngài sẽ được khắc vào lịch sử của vực sâu.",
+        "{Galaxy} Ánh sáng rực rỡ đến mức làm mù lòa những kẻ yếu đuối. Ngài chính là ông hoàng của đêm nay!"
+      ]
+    },
+    "COMEBACK": {
+      "common": [
+        "{Candle} {user} đã quay trở lại đường đua một cách ngoạn mục.",
+        "{Dice} Tưởng chừng đã gục ngã, nhưng không hề.",
+        "{Wine} Màn lội ngược dòng ấn tượng tại ván {game}.",
+        "{Moon} Từ đáy vực leo lên. Giỏi lắm.",
+        "{Cards} Vận mệnh đã đảo chiều vào phút chót.",
+        "{Candle} Từ vực thẳm ngoi lên, {user} mang theo ngọn lửa phục thù rực cháy.",
+        "{Cards} Vừa rồi còn thoi thóp, giờ đã lật ngược thế cờ. Thật sự ngoạn mục!"
+      ],
+      "rare": [
+        "{Wine} Mùi vị của sự hồi sinh thật ngọt ngào, phải không {user}?",
+        "{Galaxy} Ai bảo ngã xuống vực sâu là không thể quay về?",
+        "{Gem} Giành lại tài sản từ miệng cọp. Không tồi một chút nào.",
+        "{Wine} Ngài nếm đủ mùi tuyệt vọng để đổi lấy vị ngọt của sự trỗi dậy. Khá khen cho {user}.",
+        "{Moon} Con quái vật vừa bị đánh thức. Kẻ từ cõi chết trở về luôn thèm khát máu và tiền."
+      ],
+      "mythic": [
+        "{Sparkle} Kẻ trở về từ cõi chết luôn mang theo sức mạnh đáng sợ nhất.",
+        "{Moon} Vực sâu định nuốt chửng ngài, nhưng ngài lại bắt nó nôn ra.",
+        "{Sparkle} Sự hồi sinh mang theo thứ tà khí quyến đầu đến tột cùng. Bóng tối phải cúi đầu trước ngài."
+      ]
+    },
+    "TABLE_IDLE": {
+      "common": [
+        "{Candle} Bàn chơi {game} đang chờ đợi những linh hồn dũng cảm.",
+        "{Dice} Không ai muốn thử vận may nữa sao?",
+        "{Wine} Ly rượu của ta sắp cạn rồi mà bàn cược vẫn trống không.",
+        "{Moon} Sự tĩnh lặng bao trùm sòng bạc. Thật yên ắng.",
+        "{Butler} Vực sâu vẫn luôn ở đây vẫy gọi các ngài.",
+        "{Candle} Bàn {game} lạnh lẽo quá... Ai sẽ là linh hồn tiếp theo bước lên bệ tế này?",
+        "{Wine} Bóng tối đang chờ đợi. Những kẻ thèm khát tiền tài trốn đâu hết rồi?"
+      ],
+      "rare": [
+        "{Wine} Bàn chơi lạnh đi rồi… hay mọi người đang sợ vận mệnh của mình?",
+        "{Moon} Sự im lặng này... là bình yên trước cơn bão cược sao?",
+        "{Cards} Những đồng xu đang khóc lóc vì không được sử dụng đấy.",
+        "{Moon} Sự vắng lặng này làm ta phát điên. Lại đây, cược một ván và để máu trong huyết quản sôi lên đi!",
+        "{Dice} Những viên xúc xắc khát khao hơi ấm từ bàn tay kẻ đánh bạc. Đừng để chúng nguội lạnh."
+      ],
+      "mythic": [
+        "{Sparkle} Ta nghe thấy nhịp tim của mọi người... Ai cũng khao khát, nhưng không ai dám bước lên.",
+        "{Galaxy} Nếu các ngài không quyết định, vực sâu sẽ quyết định thay.",
+        "{Galaxy} Vực sâu vẫy gọi bằng những lời thì thầm đầy ma mị... Bước tới bàn cược đi, số phận đang chờ."
+      ]
+    },
+    "DEALER_DOMINATING": {
+      "common": [
+        "{Moon} Nhà cái đang quét sạch mọi thứ trên bàn {game}.",
+        "{Wine} Hôm nay sòng bạc làm ăn khá tốt nhờ sự đóng góp của mọi người.",
+        "{Dice} Bóng tối thu hồi lại những gì đã cho đi.",
+        "{Candle} Nhà cái không bao giờ thua mãi được.",
+        "{Butler} Có vẻ vận may của mọi người đang đồng loạt đình công.",
+        "{Wine} Cả bàn {game} đang rên rỉ dưới chân nhà cái. Thật là một cảnh tượng đẹp mắt.",
+        "{Candle} Tiền của các ngài đang chảy về một mối, cống nạp cho bóng đêm vô tận."
+      ],
+      "rare": [
+        "{Wine} Chúng ta gọi đây là cuộc thu thuế định kỳ của bóng tối.",
+        "{Galaxy} Đừng cố chống lại dòng chảy. Nhà cái đang thuận nước đẩy thuyền.",
+        "{Gem} Sòng bạc vốn được xây dựng trên sự ngây thơ và lòng tham mà.",
+        "{Moon} Đừng vùng vẫy vô ích, hãy ngoan ngoãn dâng hiến tài sản cho vực sâu đi.",
+        "{Cards} Bóng tối luôn là kẻ chiến thắng cuối cùng. Sự thống trị này ma mị đến nghẹt thở."
+      ],
+      "mythic": [
+        "{Sparkle} Trật tự vốn có của vũ trụ: Kẻ tạo ra luật chơi luôn cầm tiền cuối cùng.",
+        "{Wine} Đừng trách nhà cái tàn nhẫn. Chỉ trách ví của các ngài chưa đủ sâu.",
+        "{Sparkle} Ngửi thấy mùi hương của sự tuyệt vọng tập thể không? Nó chính là thức ăn yêu thích của sòng bài này."
+      ]
+    },
+    "PLAYER_INSULTS_CODER": {
+      "common": [
+        "{Moon} Cơn giận thường xuất hiện ngay trước khi vận may đổi chiều.",
+        "{Wine} Cứ than trách nếu điều đó làm ngài thấy khá hơn, {user}.",
+        "{Candle} Bóng tối không có lỗi, lỗi do lựa chọn của ngài.",
+        "{Candle} Cứ nguyền rủa đi. Sự thù hận của ngài chỉ làm sòng bạc thêm phần kích thích.",
+        "{Wine} Tiếng chửi bới của kẻ thua cuộc luôn là bản nhạc du dương nhất dưới đáy vực."
+      ],
+      "rare": [
+        "{Galaxy} Chửi bới luật lệ cũng giống như hét vào mặt vực sâu vậy. Vô ích thôi.",
+        "{Gem} Nếu sòng bài dễ ăn như ngài nghĩ, thì bóng tối này đã phá sản từ lâu.",
+        "{Moon} Ngài đổ lỗi cho đấng sáng tạo ư? Họ chỉ đang thưởng thức sự bất lực quyến rũ của ngài thôi.",
+        "{Dice} Những dòng code vô hồn đang thao túng tâm trí ngài. Bực tức cũng vô dụng thôi, {user}."
+      ],
+      "mythic": [
+        "{Sparkle} Cứ nguyền rủa đi. Đấng sáng tạo ra nơi này không bận tâm đến tiếng khóc của sinh linh bé nhỏ đâu.",
+        "{Galaxy} Tôn giáo của nơi này là sự tàn nhẫn. Lời rủa xả của ngài không chạm tới nổi gót chân của vị thần bóng tối đâu."
+      ]
+    }
+  }
+}
