@@ -88,7 +88,7 @@ func (b *Bot) onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	if isDM && !isPrivateCommandAllowed(cmd) {
-		_, _ = s.ChannelMessageSend(m.ChannelID, ui.Emojis.Block+" Lệnh này chỉ dùng trong máy chủ. Trong DM, bạn có thể dùng `!help`, `!balance`, `!history`, `!render` hoặc `!upd`.")
+		_, _ = s.ChannelMessageSend(m.ChannelID, ui.Emojis.Block+" Lệnh này chỉ dùng trong máy chủ. Trong DM, bạn có thể dùng `!help`, `!balance`, `!history`, `!info` hoặc `!upd`.")
 		return
 	}
 
@@ -118,7 +118,7 @@ func (b *Bot) onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		b.cmdWhitelist(s, m, args)
 	case "removelist", "clearlist":
 		b.cmdRemoveList(s, m, args)
-	case "render":
+	case "info":
 		b.cmdRender(s, m)
 	case "upd":
 		b.cmdUpdateRender(s, m)
@@ -158,7 +158,7 @@ func (b *Bot) onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		b.cmdRestore(s, m, args)
 	case "host":
 		b.cmdHost(s, m, args)
-	case "helpcasino", "help", "casino", "info":
+	case "helpcasino", "help", "casino":
 		b.cmdHelp(s, m, args)
 	}
 }
@@ -166,7 +166,7 @@ func (b *Bot) onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 func isPrivateCommandAllowed(command string) bool {
 	switch command {
 	case "help", "helpcasino", "casino", "info",
-		"render", "upd", "balance", "cash", "tien", "history":
+		"upd", "balance", "cash", "tien", "history":
 		return true
 	default:
 		return false

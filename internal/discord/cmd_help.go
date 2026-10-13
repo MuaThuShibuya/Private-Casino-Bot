@@ -103,7 +103,7 @@ func getHelpData() []HelpCategory {
 			Fallback:    "👑",
 			Commands: []HelpCommand{
 				{Name: "!uptime / !server", Description: "Xem thông tin tiêu thụ tài nguyên VPS và Uptime.", MinRole: RoleOwner},
-				{Name: "!render", Description: "Xem trạng thái Render, Gateway, MongoDB, latency và deploy gần nhất.", MinRole: RoleAdmin},
+				{Name: "!info", Description: "Xem tình trạng bot, kết nối, tài nguyên và deploy gần nhất.", MinRole: RoleAdmin},
 				{Name: "!upd", Description: "Owner yêu cầu Render build/deploy commit mới nhất từ GitHub.", MinRole: RoleOwner},
 				{Name: "!reload / !restart", Description: "Khởi động lại tiến trình Bot an toàn.", MinRole: RoleOwner},
 				{Name: "!debug_channel_config", Description: "Xem Data thực tế cấu hình kênh và tự động chuẩn hóa.", MinRole: RoleOwner},

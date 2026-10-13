@@ -43,8 +43,8 @@ func TestRenderCommandsHaveExpectedHelpPermissions(t *testing.T) {
 			roles[command.Name] = command.MinRole
 		}
 	}
-	if roles["!render"] != RoleAdmin {
-		t.Fatalf("!render should be available to Admin, got role %v", roles["!render"])
+	if roles["!info"] != RoleAdmin {
+		t.Fatalf("!info should be available to Admin, got role %v", roles["!info"])
 	}
 	if roles["!upd"] != RoleOwner {
 		t.Fatalf("!upd should be Owner-only, got role %v", roles["!upd"])

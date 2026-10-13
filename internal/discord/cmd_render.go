@@ -142,71 +142,72 @@ func sendRenderPrivateProgress(s *discordgo.Session, m *discordgo.MessageCreate,
 }
 
 func renderStatusEmbed(health monitoring.HealthSnapshot) *discordgo.MessageEmbed {
-	embed := view.NewEmbed(ui.Emojis.Crown+" ABYSS • RENDER CONTROL", "Bảng theo dõi bot. Các số liệu dưới đây là dữ liệu quan sát được, không phải dự đoán.")
+	embed := view.NewEmbed(ui.Emojis.Crown+" BOT INFO", "Tổng quan hoạt động · cập nhật "+relativeAge(health.LastUpdated))
 	embed.Color = 0x1E0B2D
-	embed.Fields = []*discordgo.MessageEmbedField{
-		{
-			Name: "Cách đọc các chỉ số",
-			Value: "**Gateway heartbeat:** độ trễ kết nối Discord; càng thấp càng tốt.\n" +
-				"**MongoDB ping:** thời gian bot hỏi database và nhận phản hồi.\n" +
-				"**Handler latency:** thời gian bot xử lý lệnh; P50 là mức điển hình, P95/P99 cho biết các lần chậm hơn.\n" +
-				"**CPU:** mức dùng của tiến trình bot theo một lõi CPU; **Heap** là bộ nhớ Go đang dùng, không phải tổng RAM máy chủ.\n" +
-				"**Reconnect:** số lần kết nối Gateway khôi phục kể từ lúc bot khởi động. Dữ liệu đánh dấu cũ khi không cập nhật quá 90 giây.\n" +
-				"**Sự cố:** chỉ đếm lỗi được monitoring ghi nhận; không bao gồm mọi dòng log của ứng dụng.",
-			Inline: false,
-		},
-	}
-
 	uptime := time.Since(health.StartedAt).Round(time.Second)
 	if uptime < 0 {
 		uptime = 0
 	}
-	embed.Fields = append(embed.Fields,
-		&discordgo.MessageEmbedField{Name: "Bot Process", Value: statusLabel(health.ProcessStatus, false), Inline: true},
-		&discordgo.MessageEmbedField{Name: "Uptime", Value: uptime.String(), Inline: true},
-		&discordgo.MessageEmbedField{Name: "Cập nhật metrics", Value: relativeAge(health.LastUpdated), Inline: true},
-		&discordgo.MessageEmbedField{Name: "Discord Gateway", Value: statusLabel(health.GatewayStatus, health.GatewayStale), Inline: true},
-		&discordgo.MessageEmbedField{Name: "MongoDB", Value: statusLabel(health.DatabaseStatus, health.DatabaseStale), Inline: true},
-		&discordgo.MessageEmbedField{Name: "Reconnect", Value: fmt.Sprintf("%d", health.Reconnects), Inline: true},
-		&discordgo.MessageEmbedField{Name: "Gateway heartbeat", Value: formatLatency(health.GatewayLatency, health.GatewayLatencySeen), Inline: true},
-		&discordgo.MessageEmbedField{Name: "MongoDB ping", Value: formatLatency(health.DatabaseLatency, health.DatabaseLatencySeen), Inline: true},
-	)
-
-	if health.CommandLatency.Count == 0 {
-		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name: "Command handler latency", Value: "Chưa có mẫu đo.", Inline: true,
-		})
-	} else {
-		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name: "Command handler latency",
-			Value: fmt.Sprintf("n=%d · P50 %s · P95 %s · P99 %s",
-				health.CommandLatency.Count,
-				health.CommandLatency.P50.Round(time.Millisecond),
-				health.CommandLatency.P95.Round(time.Millisecond),
-				health.CommandLatency.P99.Round(time.Millisecond)),
-			Inline: false,
-		})
+	embed.Fields = []*discordgo.MessageEmbedField{
+		{
+			Name: "Tình trạng",
+			Value: fmt.Sprintf("Bot %s\nDiscord %s\nMongoDB %s",
+				statusLabel(health.ProcessStatus, false),
+				statusLabel(health.GatewayStatus, health.GatewayStale),
+				statusLabel(health.DatabaseStatus, health.DatabaseStale)),
+			Inline: true,
+		},
+		{
+			Name: "Kết nối",
+			Value: fmt.Sprintf("Discord · %s\nMongoDB · %s\nReconnect · %d",
+				formatLatency(health.GatewayLatency, health.GatewayLatencySeen),
+				formatLatency(health.DatabaseLatency, health.DatabaseLatencySeen),
+				health.Reconnects),
+			Inline: true,
+		},
 	}
 
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 	cpuUsage := "Chưa có mẫu đo"
 	if health.ProcessCPUSeen {
-		cpuUsage = fmt.Sprintf("%.1f%% của một core", health.ProcessCPUPercent)
+		cpuUsage = fmt.Sprintf("%.1f%%", health.ProcessCPUPercent)
+	}
+	commandLatency := "Chưa có mẫu đo"
+	if health.CommandLatency.Count > 0 {
+		commandLatency = fmt.Sprintf("P50 %s · P95 %s",
+			health.CommandLatency.P50.Round(time.Millisecond),
+			health.CommandLatency.P95.Round(time.Millisecond))
 	}
 	embed.Fields = append(embed.Fields,
 		&discordgo.MessageEmbedField{
-			Name: "Process resources",
-			Value: fmt.Sprintf("Heap đang dùng: %.1f MiB · Goroutines: %d\nCPU process: %s",
-				float64(mem.HeapAlloc)/(1024*1024), runtime.NumGoroutine(), cpuUsage),
-			Inline: false,
+			Name: "Hiệu năng",
+			Value: fmt.Sprintf("CPU %s · RAM Go %.1f MiB\nLệnh %s",
+				cpuUsage, float64(mem.HeapAlloc)/(1024*1024), commandLatency),
+			Inline: true,
 		},
 		&discordgo.MessageEmbedField{
-			Name:   "Sự cố ghi nhận (15 phút)",
-			Value:  fmt.Sprintf("%d · chỉ tính các sự kiện đã được collector ghi nhận", health.Errors15m),
+			Name:   "Thời gian chạy",
+			Value:  uptime.String(),
 			Inline: true,
 		},
 	)
+	if errorsFound := formatRecentErrors(health.RecentErrors, 3); errorsFound != "" {
+		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
+			Name:   fmt.Sprintf("Sự cố gần đây · %d/15 phút", health.Errors15m),
+			Value:  errorsFound,
+			Inline: false,
+		})
+	} else {
+		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
+			Name:   "Sự cố · 15 phút",
+			Value:  fmt.Sprintf("%d ghi nhận", health.Errors15m),
+			Inline: true,
+		})
+	}
+	embed.Footer = &discordgo.MessageEmbedFooter{
+		Text: "Độ trễ càng thấp càng tốt · P95: 95% lệnh nhanh hơn · RAM Go không phải tổng RAM máy chủ",
+	}
 	return embed
 }
 
@@ -219,54 +220,37 @@ func appendRenderServiceFields(embed *discordgo.MessageEmbed, snapshot monitorin
 	if autoDeploy == "" {
 		autoDeploy = "không có dữ liệu"
 	}
-	serviceInfo := fmt.Sprintf("**Service:** %s (`%s`)\n**Git:** %s · branch `%s`\n**Auto-Deploy:** `%s`",
-		discordSafeText(service.Name, 64), discordSafeText(service.Type, 32),
-		discordSafeText(service.Repo, 100), discordSafeText(service.Branch, 64), discordSafeText(autoDeploy, 32))
+	serviceState := ui.Emojis.Success + " Hoạt động"
 	if service.Suspended == "suspended" {
-		serviceInfo += "\n**Service state:** suspended"
+		serviceState = ui.Emojis.Warning + " Tạm ngưng"
 	}
+	serviceInfo := fmt.Sprintf("%s · %s\nAuto-deploy: %s · API %s",
+		discordSafeText(service.Type, 32), serviceState,
+		discordSafeText(autoDeploy, 32), formatLatency(snapshot.APILatency, snapshot.APILatency > 0))
 	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-		Name:   ui.Emojis.Settings + " Render Service",
+		Name:   ui.Emojis.Settings + " Render",
 		Value:  serviceInfo,
 		Inline: false,
 	})
-	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-		Name:   "Render API latency",
-		Value:  formatLatency(snapshot.APILatency, snapshot.APILatency > 0),
-		Inline: true,
-	})
 
-	if service.DashboardURL != "" {
-		embed.URL = service.DashboardURL
-	}
 	if len(snapshot.Deploys) == 0 {
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name: "Latest deploy", Value: "Chưa có dữ liệu deploy.", Inline: false,
+			Name: "Deploy gần nhất", Value: "Chưa có dữ liệu.", Inline: false,
 		})
 		return
 	}
 
-	deployCount := len(snapshot.Deploys)
-	if deployCount > 3 {
-		deployCount = 3
+	deploy := snapshot.Deploys[0]
+	deployInfo := fmt.Sprintf("%s", displayDeployStatus(deploy.Status))
+	if deploy.CreatedAt != "" {
+		deployInfo += "\n" + discordSafeText(deploy.CreatedAt, 32)
 	}
-	lines := make([]string, 0, deployCount)
-	for _, deploy := range snapshot.Deploys[:deployCount] {
-		line := fmt.Sprintf("`%s`", displayDeployStatus(deploy.Status))
-		if deploy.Commit.ID != "" {
-			line += " · `" + shortCommit(deploy.Commit.ID) + "`"
-		}
-		if deploy.CreatedAt != "" {
-			line += " · " + discordSafeText(deploy.CreatedAt, 32)
-		}
-		if isFailedDeploy(deploy.Status) {
-			line += " · xem log trong Render Dashboard"
-		}
-		lines = append(lines, line)
+	if isFailedDeploy(deploy.Status) {
+		deployInfo += "\nXem build log trên Render"
 	}
 	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-		Name:   ui.Emojis.Dice + " Deploy History (gần nhất)",
-		Value:  strings.Join(lines, "\n"),
+		Name:   ui.Emojis.Dice + " Deploy gần nhất",
+		Value:  deployInfo,
 		Inline: false,
 	})
 }
@@ -349,13 +333,6 @@ func isFailedDeploy(status string) bool {
 	default:
 		return false
 	}
-}
-
-func shortCommit(commit string) string {
-	if len(commit) > 12 {
-		return commit[:12]
-	}
-	return discordSafeText(commit, 12)
 }
 
 func discordSafeText(value string, limit int) string {

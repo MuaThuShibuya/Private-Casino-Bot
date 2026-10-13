@@ -96,8 +96,8 @@ go run ./cmd/bot/
 | `DB_NAME` | Không | Tên database (mặc định: `casino`) |
 | `PORT` | Không | Port HTTP server (Render tự set, mặc định: `8080`) |
 | `GUILD_ID` | Không | Server ID để đăng ký slash command riêng khi phát triển |
-| `RENDER_API_KEY` | Cho `!render` / `!upd` | API key tài khoản Render, chỉ lưu ở Environment phía server |
-| `RENDER_SERVICE_ID` | Cho `!render` / `!upd` | ID Web Service Render cần theo dõi/triển khai (dạng `srv-...`) |
+| `RENDER_API_KEY` | Cho `!info` / `!upd` | API key tài khoản Render, chỉ lưu ở Environment phía server |
+| `RENDER_SERVICE_ID` | Cho `!info` / `!upd` | ID Web Service Render cần theo dõi/triển khai (dạng `srv-...`) |
 
 #### Lấy `RENDER_API_KEY`
 1. Đăng nhập [Render Dashboard](https://dashboard.render.com/).
@@ -424,10 +424,10 @@ RENDER_SERVICE_ID = [ID service Render]
 ### Bước 3 — Auto-Deploy và health checks
 Trong Render Dashboard, xác minh repository GitHub, branch triển khai và bật Auto-Deploy theo commit nếu muốn tự build sau mỗi lần push. `!upd` là thao tác deploy thủ công bổ sung, gọi Render API để build commit mới nhất trên branch của service; lệnh từ chối nếu không xác minh được Git source hoặc đã có deploy đang chạy.
 
-`!render` (Admin/Owner) hiển thị riêng qua DM tình trạng Gateway, MongoDB, thời gian xử lý command, tài nguyên process, lỗi được collector ghi nhận và lịch sử deployment gần nhất. Trong bảng có phần giải thích từng chỉ số; lưu ý CPU tính theo một lõi, Heap không phải tổng RAM và mục lỗi chỉ gồm các lỗi đã được collector ghi nhận. `!upd` (Owner) trigger deploy và cũng trả kết quả qua DM. Build/runtime logs đầy đủ vẫn xem trong Render Dashboard.
+`!info` (Admin/Owner) hiển thị riêng qua DM tình trạng Gateway, MongoDB, uptime, hiệu năng, lỗi được collector ghi nhận và trạng thái deploy gần nhất. Bảng được rút gọn, không hiển thị link Git, tên repo, branch, service ID hay commit/deploy ID. Độ trễ càng thấp càng tốt; P95 là mức mà 95% lệnh xử lý nhanh hơn; RAM Go không phải tổng RAM máy chủ. `!upd` (Owner) trigger deploy và cũng trả kết quả qua DM. Build/runtime logs đầy đủ vẫn xem trong Render Dashboard.
 
 #### Dùng lệnh riêng trong DM bot
-Bật **Message Content Intent** trong Discord Developer Portal → **Bot → Privileged Gateway Intents** (Direct Messages intent đã được bot yêu cầu trong mã nguồn). Sau đó mở DM với bot và gửi `!help`, `!balance`, `!history [1-20]`, `!render` hoặc `!upd`. `!balance`/`!history` chỉ xem dữ liệu của chính tài khoản đang nhắn; `!render` cần Admin/Owner và `!upd` chỉ dành cho Owner. Các lệnh game, chuyển tiền và quản trị khác vẫn chỉ dùng trong server. Nếu bot không nhận hoặc không gửi được DM, kiểm tra cài đặt quyền tin nhắn trực tiếp của tài khoản/server trong Discord và khởi động lại bot sau khi bật Message Content Intent.
+Bật **Message Content Intent** trong Discord Developer Portal → **Bot → Privileged Gateway Intents** (Direct Messages intent đã được bot yêu cầu trong mã nguồn). Sau đó mở DM với bot và gửi `!help`, `!balance`, `!history [1-20]`, `!info` hoặc `!upd`. `!balance`/`!history` chỉ xem dữ liệu của chính tài khoản đang nhắn; `!info` cần Admin/Owner và `!upd` chỉ dành cho Owner. Các lệnh game, chuyển tiền và quản trị khác vẫn chỉ dùng trong server. Nếu bot không nhận hoặc không gửi được DM, kiểm tra cài đặt quyền tin nhắn trực tiếp của tài khoản/server trong Discord và khởi động lại bot sau khi bật Message Content Intent.
 
 ### Health endpoints
 ```
