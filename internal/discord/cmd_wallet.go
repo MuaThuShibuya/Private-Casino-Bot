@@ -3,6 +3,7 @@ package discord
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -122,6 +123,54 @@ func (b *Bot) cmdCash(s *discordgo.Session, m *discordgo.MessageCreate, args []s
 	}
 
 	b.renderCashEmbed(s, m.ChannelID, targetID, 1, false, "")
+}
+
+func (b *Bot) cmdHistory(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	limit := 10
+	if len(args) > 0 {
+		parsed, err := strconv.Atoi(args[0])
+		if err != nil || parsed < 1 || parsed > 20 {
+			sendTemp(s, m.ChannelID, ui.Emojis.Error+" Dùng: `!history [1-20]`", 5*time.Second)
+			return
+		}
+		limit = parsed
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	logs, err := b.wallet.History(ctx, m.Author.ID, int64(limit))
+	if err != nil {
+		log.Printf("[!history] query failed user_id=%s: %v", m.Author.ID, err)
+		_, _ = s.ChannelMessageSend(m.ChannelID, ui.Emojis.Error+" Không tải được lịch sử giao dịch. Vui lòng thử lại sau.")
+		return
+	}
+	if len(logs) == 0 {
+		_, _ = s.ChannelMessageSend(m.ChannelID, ui.Emojis.Empty+" Bạn chưa có giao dịch nào.")
+		return
+	}
+
+	var description strings.Builder
+	description.WriteString(fmt.Sprintf("**%d giao dịch gần nhất của bạn**\n", len(logs)))
+	vnZone := time.FixedZone("ICT", 7*3600)
+	for _, tx := range logs {
+		amount := tx.Amount
+		sign := "+"
+		if amount < 0 {
+			sign = "-"
+			amount = -amount
+		}
+		description.WriteString(fmt.Sprintf("`%s` **%s%s** · %s\n",
+			tx.CreatedAt.In(vnZone).Format("02/01 15:04"),
+			sign, formatCoins(amount),
+			discordSafeText(tx.Description, 120)))
+	}
+
+	embed := view.GameEmbed(ui.Emojis.History+" Lịch Sử Giao Dịch", description.String())
+	embed.Footer = &discordgo.MessageEmbedFooter{Text: "Chỉ hiển thị lịch sử của tài khoản bạn"}
+	if _, err := s.ChannelMessageSendEmbed(m.ChannelID, embed); err != nil {
+		log.Printf("[!history] response failed user_id=%s channel_id=%s: %v", m.Author.ID, m.ChannelID, err)
+	}
 }
 
 // handleWalletPagination xử lý khi người dùng nhấn nút chuyển trang lịch sử

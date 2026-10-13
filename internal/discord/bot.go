@@ -37,10 +37,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/discordcasino/v2/internal/models"
+	"github.com/discordcasino/v2/internal/monitoring"
 	"github.com/discordcasino/v2/internal/repository"
 	"github.com/discordcasino/v2/internal/service"
 	"github.com/discordcasino/v2/internal/ui"
@@ -55,6 +57,10 @@ type Bot struct {
 	casinoConfigSvc *service.CasinoConfigService
 	mw              *Middleware
 	rateLimiter     *RateLimiter
+	monitor         *monitoring.Monitor
+	render          *monitoring.RenderClient
+	monitorStop     chan struct{}
+	monitorStopOnce sync.Once
 	guildID         string // "" = global slash commands (~1h), có ID = guild command (ngay lập tức)
 	actionLocks     sync.Map
 }
@@ -76,6 +82,7 @@ func NewBot(
 	// Phải bật trong Discord Developer Portal → Bot → Privileged Gateway Intents
 	dg.Identify.Intents = discordgo.IntentsGuilds |
 		discordgo.IntentsGuildMessages |
+		discordgo.IntentsDirectMessages |
 		discordgo.IntentsMessageContent
 
 	b := &Bot{
@@ -86,9 +93,22 @@ func NewBot(
 		casinoConfigSvc: casinoConfigSvc,
 		mw:              NewMiddleware(userRepo, configRepo),
 		rateLimiter:     NewRateLimiter(time.Second), // 1 lệnh/giây/user
+		monitor:         monitoring.Default(),
+		monitorStop:     make(chan struct{}),
 		guildID:         guildID,
 	}
 	return b, nil
+}
+
+func (b *Bot) SetRenderClient(client *monitoring.RenderClient) {
+	b.render = client
+}
+
+func (b *Bot) getMonitor() *monitoring.Monitor {
+	if b.monitor == nil {
+		return monitoring.Default()
+	}
+	return b.monitor
 }
 
 // Lấy Role Thực tế (Bọc qua Middleware)
@@ -113,15 +133,36 @@ func (b *Bot) Start() error {
 
 	b.session.AddHandler(b.onInteraction) // xử lý slash commands + nút bấm game
 	b.session.AddHandler(b.onMessage)     // xử lý lệnh ! prefix
+	var gatewayReady atomic.Bool
+	b.session.AddHandler(func(s *discordgo.Session, _ *discordgo.Connect) {
+		if gatewayReady.Load() {
+			b.monitor.RecordReconnect()
+			b.monitor.SetGatewayStatus("reconnecting", s.HeartbeatLatency())
+			return
+		}
+		b.monitor.SetGatewayStatus("connecting", s.HeartbeatLatency())
+	})
+	b.session.AddHandler(func(s *discordgo.Session, _ *discordgo.Disconnect) {
+		b.monitor.SetGatewayStatus("disconnected", s.HeartbeatLatency())
+	})
 	b.session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+		gatewayReady.Store(true)
+		b.monitor.SetGatewayStatus("connected", s.HeartbeatLatency())
 		log.Printf("[Bot] Đã đăng nhập: %s#%s", r.User.Username, r.User.Discriminator)
+	})
+	b.session.AddHandler(func(s *discordgo.Session, _ *discordgo.Resumed) {
+		gatewayReady.Store(true)
+		b.monitor.SetGatewayStatus("connected", s.HeartbeatLatency())
 	})
 
 	if err := b.session.Open(); err != nil {
+		b.getMonitor().SetGatewayStatus("disconnected", 0)
 		return fmt.Errorf("mở kết nối WebSocket thất bại: %w", err)
 	}
+	go b.sampleGatewayHealth()
 
 	if err := b.registerCommands(); err != nil {
+		b.Stop()
 		return fmt.Errorf("đăng ký slash commands thất bại: %w", err)
 	}
 
@@ -130,7 +171,28 @@ func (b *Bot) Start() error {
 }
 
 func (b *Bot) Stop() {
+	b.monitorStopOnce.Do(func() {
+		close(b.monitorStop)
+	})
+	b.getMonitor().SetGatewayStatus("disconnected", 0)
 	_ = b.session.Close()
+}
+
+func (b *Bot) sampleGatewayHealth() {
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-b.monitorStop:
+			return
+		case <-ticker.C:
+			if b.getMonitor().Health().GatewayStatus == "connected" {
+				if latency := b.session.HeartbeatLatency(); latency > 0 {
+					b.getMonitor().SetGatewayStatus("connected", latency)
+				}
+			}
+		}
+	}
 }
 
 // ── Định nghĩa Slash Commands (/balance, /transfer, /history, /admin) ─────────
@@ -177,6 +239,10 @@ var commands = []*discordgo.ApplicationCommand{
 				Required:    false,
 			},
 		},
+	},
+	{
+		Name:        "helpcasino",
+		Description: "Mở bảng trợ giúp và danh mục lệnh của Casino",
 	},
 	{
 		Name:        "admin",
@@ -374,6 +440,7 @@ func (b *Bot) routeSlashCommand(s *discordgo.Session, i *discordgo.InteractionCr
 		"transfer":    Chain(b.handleTransfer, b.mw.RequireWhitelistedChannel, RequireUnlocked),
 		"history":     b.handleHistory,
 		"gamehistory": b.handleGameHistory,
+		"helpcasino":  b.handleHelp,
 		"admin":       Chain(b.handleAdmin, b.mw.RequireAdmin),
 		"reset":       Chain(b.handleReset, b.mw.RequireAdmin),
 		"host":        b.handleHostCommand,
@@ -381,6 +448,10 @@ func (b *Bot) routeSlashCommand(s *discordgo.Session, i *discordgo.InteractionCr
 	}
 	name := i.ApplicationCommandData().Name
 	if h, ok := handlers[name]; ok {
+		started := time.Now()
+		defer func() {
+			b.getMonitor().RecordCommand(time.Since(started))
+		}()
 		h(s, i)
 	}
 }
@@ -400,6 +471,8 @@ func (b *Bot) routeButtonClick(s *discordgo.Session, i *discordgo.InteractionCre
 		b.handleBaicaoButton(s, i)
 	case strings.HasPrefix(id, "admin:"):
 		b.handleAdminComponent(s, i)
+	case strings.HasPrefix(id, "help:"):
+		b.handleHelpComponent(s, i)
 	case strings.HasPrefix(id, "bal:page:"):
 		b.handleBalancePagination(s, i)
 	case strings.HasPrefix(id, "gcfg:"):

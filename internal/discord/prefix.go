@@ -70,13 +70,14 @@ func (b *Bot) onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	// Bỏ qua bot và tin nhắn từ DM (không có GuildID)
-	if m.Author.Bot || m.GuildID == "" {
+	if m.Author.Bot {
 		return
 	}
 
-	// ── KIỂM TRA & XỬ LÝ NPC AI GIẢ LẬP ─────────────────────────────
-	b.ProcessAIMessage(s, m)
+	isDM := m.GuildID == ""
+	if !isDM {
+		b.ProcessAIMessage(s, m)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -84,6 +85,10 @@ func (b *Bot) onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	cmd, args := parseCommand(m.Content, prefix)
 	if cmd == "" {
+		return
+	}
+	if isDM && !isPrivateCommandAllowed(cmd) {
+		_, _ = s.ChannelMessageSend(m.ChannelID, ui.Emojis.Block+" Lệnh này chỉ dùng trong máy chủ. Trong DM, bạn có thể dùng `!help`, `!balance`, `!history`, `!render` hoặc `!upd`.")
 		return
 	}
 
@@ -95,6 +100,11 @@ func (b *Bot) onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		return
 	}
+
+	commandStarted := time.Now()
+	defer func() {
+		b.getMonitor().RecordCommand(time.Since(commandStarted))
+	}()
 
 	switch cmd {
 	// ── Quản trị ────────────────────────────────────────────────────
@@ -108,6 +118,14 @@ func (b *Bot) onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		b.cmdWhitelist(s, m, args)
 	case "removelist", "clearlist":
 		b.cmdRemoveList(s, m, args)
+	case "render":
+		b.cmdRender(s, m)
+	case "upd":
+		b.cmdUpdateRender(s, m)
+	case "balance":
+		b.cmdCash(s, m, args)
+	case "history":
+		b.cmdHistory(s, m, args)
 
 	// ── Moderation ──────────────────────────────────────────────────
 	case "delete", "clear", "purge":
@@ -140,7 +158,17 @@ func (b *Bot) onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		b.cmdRestore(s, m, args)
 	case "host":
 		b.cmdHost(s, m, args)
-	case "helpcasino", "help", "casino":
+	case "helpcasino", "help", "casino", "info":
 		b.cmdHelp(s, m, args)
+	}
+}
+
+func isPrivateCommandAllowed(command string) bool {
+	switch command {
+	case "help", "helpcasino", "casino", "info",
+		"render", "upd", "balance", "cash", "tien", "history":
+		return true
+	default:
+		return false
 	}
 }

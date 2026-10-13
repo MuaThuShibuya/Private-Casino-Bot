@@ -91,11 +91,25 @@ go run ./cmd/bot/
 
 | Biến | Bắt buộc | Mô tả |
 |------|----------|-------|
-| `DISCORD_TOKEN`| Token bot từ Discord Developer Portal |
-| `MONGODB_URI`| Connection string MongoDB Atlas |
-| `DB_NAME`| Tên database (mặc định: `casino`) |
-| `PORT`| Port HTTP keep-alive (Render tự set, mặc định: `8080`) |
-| `GUILD_ID`| Xem giải thích bên dưới |
+| `DISCORD_TOKEN` | Bắt buộc | Token bot từ Discord Developer Portal |
+| `MONGODB_URI` | Bắt buộc | Connection string MongoDB Atlas |
+| `DB_NAME` | Không | Tên database (mặc định: `casino`) |
+| `PORT` | Không | Port HTTP server (Render tự set, mặc định: `8080`) |
+| `GUILD_ID` | Không | Server ID để đăng ký slash command riêng khi phát triển |
+| `RENDER_API_KEY` | Cho `!render` / `!upd` | API key tài khoản Render, chỉ lưu ở Environment phía server |
+| `RENDER_SERVICE_ID` | Cho `!render` / `!upd` | ID Web Service Render cần theo dõi/triển khai (dạng `srv-...`) |
+
+#### Lấy `RENDER_API_KEY`
+1. Đăng nhập [Render Dashboard](https://dashboard.render.com/).
+2. Mở **Account Settings** → **API Keys**.
+3. Chọn tạo API key, đặt tên dễ nhận biết (ví dụ `CasinoBot deploy`) và sao chép key ngay lúc Render hiển thị. Không đăng key trong Discord, không commit vào repo, không gửi key cho người khác.
+
+#### Lấy `RENDER_SERVICE_ID`
+1. Trong Dashboard, mở đúng Web Service đang chạy bot.
+2. Mở trang **Settings** của service và tìm mục **Service ID**, hoặc đọc ID trong URL Dashboard của service.
+3. Sao chép ID bắt đầu bằng `srv-` (không dùng tên service hoặc URL Dashboard).
+
+Thêm hai giá trị này trong **service → Environment → Environment Variables** trên Render rồi lưu thay đổi. API key là bí mật tài khoản; nếu bị lộ, hãy thu hồi và tạo key mới. Bot dùng key để đọc thông tin service/deploy và yêu cầu deploy qua Render API.
 
 ### GUILD_ID — Có cần thiết không?
 
@@ -402,21 +416,26 @@ DISCORD_TOKEN  = [bot token]
 MONGODB_URI    = [atlas connection string]
 DB_NAME        = casino
 GUILD_ID       = (để trống)
+RENDER_API_KEY = [Render API key — chỉ lưu trong Environment]
+RENDER_SERVICE_ID = [ID service Render]
 ```
 > Render tự set `PORT` — không cần điền.
 
-### Bước 3 — Keep-Alive (đã tích hợp sẵn)
-Bot đã có HTTP server trả `200 OK` trên `$PORT`.
-Render sẽ ping endpoint này để không bị spin down.
+### Bước 3 — Auto-Deploy và health checks
+Trong Render Dashboard, xác minh repository GitHub, branch triển khai và bật Auto-Deploy theo commit nếu muốn tự build sau mỗi lần push. `!upd` là thao tác deploy thủ công bổ sung, gọi Render API để build commit mới nhất trên branch của service; lệnh từ chối nếu không xác minh được Git source hoặc đã có deploy đang chạy.
 
-Nếu dùng **Free tier** (có thể bị spin down sau 15 phút idle):
-→ Dùng [UptimeRobot](https://uptimerobot.com) ping `https://your-app.onrender.com/health` mỗi 5 phút.
+`!render` (Admin/Owner) hiển thị riêng qua DM tình trạng Gateway, MongoDB, thời gian xử lý command, tài nguyên process, lỗi được collector ghi nhận và lịch sử deployment gần nhất. Trong bảng có phần giải thích từng chỉ số; lưu ý CPU tính theo một lõi, Heap không phải tổng RAM và mục lỗi chỉ gồm các lỗi đã được collector ghi nhận. `!upd` (Owner) trigger deploy và cũng trả kết quả qua DM. Build/runtime logs đầy đủ vẫn xem trong Render Dashboard.
 
-### Health Check Endpoints
+#### Dùng lệnh riêng trong DM bot
+Bật **Message Content Intent** trong Discord Developer Portal → **Bot → Privileged Gateway Intents** (Direct Messages intent đã được bot yêu cầu trong mã nguồn). Sau đó mở DM với bot và gửi `!help`, `!balance`, `!history [1-20]`, `!render` hoặc `!upd`. `!balance`/`!history` chỉ xem dữ liệu của chính tài khoản đang nhắn; `!render` cần Admin/Owner và `!upd` chỉ dành cho Owner. Các lệnh game, chuyển tiền và quản trị khác vẫn chỉ dùng trong server. Nếu bot không nhận hoặc không gửi được DM, kiểm tra cài đặt quyền tin nhắn trực tiếp của tài khoản/server trong Discord và khởi động lại bot sau khi bật Message Content Intent.
+
+### Health endpoints
 ```
-GET /         → 200 OK  (Render uses this)
-GET /health   → 200 {"status":"ok","ts":"2024-..."}
+GET /health → 200 {"status":"ok"}      (liveness)
+GET /ready  → 200 {"status":"ready"}   (Gateway + MongoDB + process sẵn sàng)
+GET /ready  → 503 {"status":"not_ready"} nếu dependency chưa sẵn sàng hoặc dữ liệu health đã cũ
 ```
+Các phản hồi health chỉ chứa trạng thái tổng quát, không trả thông tin nội bộ hay secrets. Cấu hình Render Health Check Path là `/health` cho liveness; không dùng `/ready` làm liveness. Không thể xác minh service, branch, Auto-Deploy hoặc runtime cho tới khi các biến Render được cấu hình và app chạy trên Render.
 
 ---
 
