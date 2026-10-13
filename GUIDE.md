@@ -98,6 +98,7 @@ go run ./cmd/bot/
 | `GUILD_ID` | Không | Server ID để đăng ký slash command riêng khi phát triển |
 | `RENDER_API_KEY` | Cho `!info` / `!upd` | API key tài khoản Render, chỉ lưu ở Environment phía server |
 | `RENDER_SERVICE_ID` | Cho `!info` / `!upd` | ID Web Service Render cần theo dõi/triển khai (dạng `srv-...`) |
+| `GITHUB_TOKEN` | Cho xác minh phiên bản `!info` / `!upd` | Fine-grained token chỉ có quyền Contents: Read cho repository bot |
 
 #### Lấy `RENDER_API_KEY`
 1. Đăng nhập [Render Dashboard](https://dashboard.render.com/).
@@ -109,7 +110,13 @@ go run ./cmd/bot/
 2. Mở trang **Settings** của service và tìm mục **Service ID**, hoặc đọc ID trong URL Dashboard của service.
 3. Sao chép ID bắt đầu bằng `srv-` (không dùng tên service hoặc URL Dashboard).
 
-Thêm hai giá trị này trong **service → Environment → Environment Variables** trên Render rồi lưu thay đổi. API key là bí mật tài khoản; nếu bị lộ, hãy thu hồi và tạo key mới. Bot dùng key để đọc thông tin service/deploy và yêu cầu deploy qua Render API.
+Thêm các giá trị này trong **service → Environment → Environment Variables** trên Render rồi lưu thay đổi. API key là bí mật tài khoản; nếu bị lộ, hãy thu hồi và tạo key mới. Bot dùng key để đọc thông tin service/deploy và yêu cầu deploy qua Render API.
+
+#### Lấy `GITHUB_TOKEN` để xác minh commit
+1. Mở [Fine-grained personal access tokens](https://github.com/settings/personal-access-tokens/new) trong GitHub.
+2. Chọn **Only select repositories** và chỉ chọn repository đang kết nối với Render.
+3. Cấp quyền repository **Contents: Read-only**; không cấp quyền ghi, workflow hoặc administration.
+4. Tạo token rồi lưu vào `GITHUB_TOKEN` trong **Render → service → Environment**. Token chỉ dùng để đọc SHA của branch mà Render service đang theo dõi. Nếu token bị lộ, thu hồi và tạo token mới.
 
 ### GUILD_ID — Có cần thiết không?
 
@@ -418,13 +425,14 @@ DB_NAME        = casino
 GUILD_ID       = (để trống)
 RENDER_API_KEY = [Render API key — chỉ lưu trong Environment]
 RENDER_SERVICE_ID = [ID service Render]
+GITHUB_TOKEN = [fine-grained token, chỉ Contents: Read]
 ```
 > Render tự set `PORT` — không cần điền.
 
 ### Bước 3 — Auto-Deploy và health checks
-Trong Render Dashboard, xác minh repository GitHub, branch triển khai và bật Auto-Deploy theo commit nếu muốn tự build sau mỗi lần push. `!upd` là thao tác deploy thủ công bổ sung, gọi Render API để build commit mới nhất trên branch của service; lệnh từ chối nếu không xác minh được Git source hoặc đã có deploy đang chạy.
+Trong Render Dashboard, xác minh repository GitHub, branch triển khai và bật Auto-Deploy theo commit nếu muốn tự build sau mỗi lần push. `!info`/`!upd` đối chiếu SHA HEAD branch từ GitHub API với SHA của deployment có trạng thái LIVE từ Render API. `!upd` chờ deployment đang chạy, sau đó deploy commit SHA đã xác minh bằng Render API và chờ trạng thái cuối. Nếu branch tiến thêm commit trong lúc build, bot được phép trigger tối đa một deployment tiếp theo trong cùng lệnh; không retry POST khi kết quả yêu cầu bị mơ hồ.
 
-`!info` (Admin/Owner) hiển thị riêng qua DM tình trạng Gateway, MongoDB, uptime, hiệu năng, lỗi được collector ghi nhận và trạng thái deploy gần nhất. Bảng được rút gọn, không hiển thị link Git, tên repo, branch, service ID hay commit/deploy ID. Độ trễ càng thấp càng tốt; P95 là mức mà 95% lệnh xử lý nhanh hơn; RAM Go không phải tổng RAM máy chủ. `!upd` (Owner) trigger deploy và cũng trả kết quả qua DM. Build/runtime logs đầy đủ vẫn xem trong Render Dashboard.
+`!info` (Admin/Owner) hiển thị riêng qua DM tình trạng Gateway, MongoDB, uptime, hiệu năng, lỗi được collector ghi nhận và trạng thái deploy gần nhất. Bảng được rút gọn, không hiển thị link Git, tên repo, branch, service ID hay commit/deploy ID. Khi thiếu quyền GitHub, API lỗi, SHA không rõ hoặc lịch sử deploy bị phân trang quá giới hạn, trạng thái sẽ là chưa xác minh — không được coi là đã cập nhật. Độ trễ càng thấp càng tốt; P95 là mức mà 95% lệnh xử lý nhanh hơn; RAM Go không phải tổng RAM máy chủ. `!upd` (Owner) theo dõi và xác minh deploy qua DM. Build/runtime logs đầy đủ vẫn xem trong Render Dashboard.
 
 #### Dùng lệnh riêng trong DM bot
 Bật **Message Content Intent** trong Discord Developer Portal → **Bot → Privileged Gateway Intents** (Direct Messages intent đã được bot yêu cầu trong mã nguồn). Sau đó mở DM với bot và gửi `!help`, `!balance`, `!history [1-20]`, `!info` hoặc `!upd`. `!balance`/`!history` chỉ xem dữ liệu của chính tài khoản đang nhắn; `!info` cần Admin/Owner và `!upd` chỉ dành cho Owner. Các lệnh game, chuyển tiền và quản trị khác vẫn chỉ dùng trong server. Nếu bot không nhận hoặc không gửi được DM, kiểm tra cài đặt quyền tin nhắn trực tiếp của tài khoản/server trong Discord và khởi động lại bot sau khi bật Message Content Intent.

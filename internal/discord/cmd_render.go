@@ -76,7 +76,7 @@ func (b *Bot) cmdRender(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func (b *Bot) cmdUpdateRender(s *discordgo.Session, m *discordgo.MessageCreate) {
-	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 
 	role := b.GetRole(ctx, s, m.GuildID, m.Author.ID, m.Member)
@@ -89,16 +89,32 @@ func (b *Bot) cmdUpdateRender(s *discordgo.Session, m *discordgo.MessageCreate) 
 		return
 	}
 
-	channel, progress, err := sendRenderPrivateProgress(s, m, ui.Emojis.Loading+" Đang xác minh service và yêu cầu Render build commit mới nhất...")
+	channel, progress, err := sendRenderPrivateProgress(s, m, ui.Emojis.Loading+" Đang kiểm tra commit mới nhất trên branch và trạng thái deploy...")
 	if err != nil {
 		return
 	}
 
-	deploy, deployErr := b.render.TriggerDeploy(ctx)
+	updateProgress := func(state monitoring.DeploymentProgress) {
+		message := ui.Emojis.Loading + " Đang xác minh trạng thái deploy..."
+		switch state {
+		case monitoring.ProgressChecking:
+			message = ui.Emojis.Loading + " Đang xác minh branch và commit hiện tại..."
+		case monitoring.ProgressWaiting:
+			message = ui.Emojis.Loading + " Render đang triển khai. Đang chờ kết quả..."
+		case monitoring.ProgressTriggering:
+			message = ui.Emojis.Loading + " Đang yêu cầu Render triển khai commit đã xác minh..."
+		case monitoring.ProgressVerifying:
+			message = ui.Emojis.Loading + " Deploy hoàn tất. Đang xác minh commit LIVE với branch..."
+		}
+		if _, err := s.ChannelMessageEdit(channel.ID, progress.ID, message); err != nil {
+			log.Printf("[Render] Không thể cập nhật tiến độ !upd: %v", err)
+		}
+	}
+	result, deployErr := b.render.EnsureLatest(ctx, updateProgress)
 	if deployErr != nil {
 		label := renderErrorLabel(deployErr)
 		b.getMonitor().RecordError("Render deploy", label)
-		log.Printf("[Render] Không thể trigger deploy: %s", label)
+		log.Printf("[Render] Không thể xác minh/cập nhật deployment: %s", label)
 		embed := view.ErrorEmbed(label)
 		embed.Color = 0x1E0B2D
 		if _, err := s.ChannelMessageEditEmbed(channel.ID, progress.ID, embed); err != nil {
@@ -107,18 +123,19 @@ func (b *Bot) cmdUpdateRender(s *discordgo.Session, m *discordgo.MessageCreate) 
 		return
 	}
 
-	description := fmt.Sprintf("%s Đã gửi yêu cầu build/deploy commit mới nhất từ nhánh đã cấu hình.", ui.Emojis.Success)
-	description += fmt.Sprintf("\n**Trạng thái:** `%s`", displayDeployStatus(deploy.Status))
-	if deploy.ID != "" {
-		description += fmt.Sprintf("\n**Deploy ID:** `%s`", deploy.ID)
+	var description string
+	switch result.State {
+	case monitoring.DeploymentUpToDate:
+		description = ui.Emojis.Success + " Đã xác minh: commit mới nhất trên branch đang chạy LIVE."
+	case monitoring.DeploymentUpdatePending:
+		description = ui.Emojis.Warning + " Deploy đã hoàn tất nhưng branch có commit mới hơn. Chưa thể xác nhận đã cập nhật phiên bản mới nhất; hãy chạy `!upd` lại sau."
+	default:
+		description = ui.Emojis.Warning + " Chưa xác minh được commit LIVE mới nhất. Không thể báo cập nhật hoàn tất."
 	}
-	embed := view.NewEmbed(ui.Emojis.Crown+" RENDER DEPLOY", description)
+	embed := view.NewEmbed(ui.Emojis.Crown+" CẬP NHẬT BOT", description)
 	embed.Color = 0x1E0B2D
-	if b.render != nil {
-		if snapshot, err := b.render.Snapshot(ctx); err == nil && snapshot.Service.DashboardURL != "" {
-			embed.URL = snapshot.Service.DashboardURL
-			embed.Footer = &discordgo.MessageEmbedFooter{Text: "Mở Render Dashboard để theo dõi build và logs"}
-		}
+	if result.TriggerCount > 0 {
+		embed.Footer = &discordgo.MessageEmbedFooter{Text: fmt.Sprintf("Đã yêu cầu %d deployment trong lần kiểm tra này.", result.TriggerCount)}
 	}
 	if _, err := s.ChannelMessageEditEmbed(channel.ID, progress.ID, embed); err != nil {
 		log.Printf("[Render] Không thể cập nhật kết quả !upd: %v", err)
@@ -233,17 +250,25 @@ func appendRenderServiceFields(embed *discordgo.MessageEmbed, snapshot monitorin
 		Inline: false,
 	})
 
-	if len(snapshot.Deploys) == 0 {
+	deploymentState := snapshot.DeploymentState
+	if snapshot.ActiveDeploy != nil {
+		deploymentState = monitoring.DeploymentInProgress
+	}
+	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
+		Name:   "Phiên bản",
+		Value:  deploymentStateLabel(deploymentState),
+		Inline: true,
+	})
+	if snapshot.LatestDeploy == nil {
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
 			Name: "Deploy gần nhất", Value: "Chưa có dữ liệu.", Inline: false,
 		})
 		return
 	}
-
-	deploy := snapshot.Deploys[0]
+	deploy := *snapshot.LatestDeploy
 	deployInfo := fmt.Sprintf("%s", displayDeployStatus(deploy.Status))
-	if deploy.CreatedAt != "" {
-		deployInfo += "\n" + discordSafeText(deploy.CreatedAt, 32)
+	if createdAt, err := time.Parse(time.RFC3339Nano, deploy.CreatedAt); err == nil {
+		deployInfo += " · " + relativeAge(createdAt)
 	}
 	if isFailedDeploy(deploy.Status) {
 		deployInfo += "\nXem build log trên Render"
@@ -253,6 +278,21 @@ func appendRenderServiceFields(embed *discordgo.MessageEmbed, snapshot monitorin
 		Value:  deployInfo,
 		Inline: false,
 	})
+}
+
+func deploymentStateLabel(state monitoring.DeploymentState) string {
+	switch state {
+	case monitoring.DeploymentUpToDate:
+		return ui.Emojis.Success + " Đã xác minh LIVE bản mới nhất"
+	case monitoring.DeploymentUpdatePending:
+		return ui.Emojis.Warning + " Có bản mới chưa LIVE"
+	case monitoring.DeploymentInProgress:
+		return ui.Emojis.Loading + " Đang triển khai · chưa xác minh"
+	case monitoring.DeploymentFailed:
+		return ui.Emojis.Error + " Deploy thất bại · chưa cập nhật"
+	default:
+		return ui.Emojis.Warning + " Chưa xác minh được"
+	}
 }
 
 func formatRecentErrors(events []monitoring.Event, limit int) string {
@@ -275,14 +315,24 @@ func renderErrorLabel(err error) string {
 	switch {
 	case errors.Is(err, monitoring.ErrRenderNotConfigured):
 		return "Chưa cấu hình Render API."
-	case errors.Is(err, monitoring.ErrDeployInProgress):
-		return "Đang có deploy chạy; đã bỏ qua để tránh trigger trùng."
+	case errors.Is(err, monitoring.ErrGitHubNotConfigured):
+		return "Chưa cấu hình GITHUB_TOKEN có quyền Contents: Read cho repository."
+	case errors.Is(err, monitoring.ErrServiceIDMismatch):
+		return "Render API trả về service khác ID đã cấu hình; đã dừng để tránh deploy nhầm."
 	case errors.Is(err, monitoring.ErrGitSourceMissing):
-		return "Không xác minh được Git repository/branch của service; đã hủy thao tác."
+		return "Không xác minh được GitHub repository/branch của service; đã dừng thao tác."
 	case errors.Is(err, monitoring.ErrServiceSuspended):
 		return "Render service đang suspended; đã hủy thao tác."
 	case errors.Is(err, monitoring.ErrRenderTimeout):
 		return "Render API timeout; không xác minh được trạng thái."
+	case errors.Is(err, monitoring.ErrGitHubTimeout):
+		return "GitHub API timeout; không xác minh được commit mới nhất."
+	case errors.Is(err, monitoring.ErrDeploymentFailed):
+		return "Deployment không hoàn tất ở trạng thái LIVE; phiên bản mới chưa được xác minh. Kiểm tra trạng thái/build log trên Render Dashboard."
+	case errors.Is(err, monitoring.ErrDeploymentTimeout):
+		return "Quá thời gian chờ Render; trạng thái cuối và commit LIVE chưa được xác minh. Không tự trigger thêm deployment."
+	case errors.Is(err, monitoring.ErrDeploymentUnknown):
+		return "Trạng thái deploy hoặc commit LIVE không xác định; đã dừng và không báo cập nhật thành công."
 	}
 	var apiErr *monitoring.RenderAPIError
 	if errors.As(err, &apiErr) {
@@ -291,6 +341,15 @@ func renderErrorLabel(err error) string {
 			return "Render API từ chối xác thực/quyền truy cập (HTTP " + fmt.Sprint(apiErr.StatusCode) + ")."
 		default:
 			return fmt.Sprintf("Render API trả HTTP %d.", apiErr.StatusCode)
+		}
+	}
+	var githubErr *monitoring.GitHubAPIError
+	if errors.As(err, &githubErr) {
+		switch githubErr.StatusCode {
+		case http.StatusUnauthorized, http.StatusForbidden:
+			return "GitHub từ chối token hoặc quyền đọc repository (HTTP " + fmt.Sprint(githubErr.StatusCode) + ")."
+		default:
+			return fmt.Sprintf("GitHub API trả HTTP %d.", githubErr.StatusCode)
 		}
 	}
 	return "Không thể kết nối Render API."

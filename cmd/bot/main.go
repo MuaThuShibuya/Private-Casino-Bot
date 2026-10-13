@@ -100,6 +100,7 @@ func main() {
 	bot.SetRenderClient(monitoring.NewRenderClient(
 		os.Getenv("RENDER_API_KEY"),
 		os.Getenv("RENDER_SERVICE_ID"),
+		os.Getenv("GITHUB_TOKEN"),
 	))
 
 	if err := bot.Start(); err != nil {
